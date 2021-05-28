@@ -39,7 +39,7 @@ Cost funtion
 def cost(X, Y, N, w, b, v, c):
     sum = 0
     for n in range(N):
-        prediction = predict(X[n], J, w, b, v, c)
+        _, prediction = predict(X[n], J, w, b, v, c)
         sum += Y[n] * np.log(prediction) + (1 - Y[n]) * np.log(1 - prediction)
     E = - sum / N
     return E
@@ -48,36 +48,39 @@ def cost(X, Y, N, w, b, v, c):
 Predict label
 '''
 def predict(x, J, w, b, v, c):
-    # x -> w * x + b -> s
-    # s -> sigmoid(s) -> h
-    
-    # h -> c + v.T * h -> z
+    # x, w, b -> b + w * x -> s
+    s = b + np.dot(w, x)
+    # s -> s.map(sigmoid) -> h
+    func = lambda a: sigmoid(a)
+    h = np.array([func(s_j) for s_j in s])
+    # c, v, h -> c + v.T * h -> z
     sum = 0
     for j in range(J):
         sum += v[j] * h[j]
     z = c + sum
+    # prediction
     y = sigmoid(z)
-    return y
+    return h, y
 
 
-def gradient(X, Y, v, h, m, prediction):
-    func1 = lambda a: a * (1 - a)
-    diagonal = np.array([func1(h_m) for h_m in h])
+def gradient(x, y, v, h, prediction):
+    func = lambda a: a * (1 - a)
+    diagonal = np.array([func(h_m) for h_m in h])
     matrix1 = np.diag(diagonal) # J x J
-    matrix2 = np.tile(X[m], (J, 1))    
+    matrix2 = np.tile(x, (J, 1))    
     matrix2 = np.transpose(matrix2) * v
     matrix2 = np.transpose(matrix2) # J x I
-    Gw = (prediction - Y[m]) * np.matmul(matrix1, matrix2) # w's gradient
-    Gb = (prediction - Y[m]) * (matrix1 * v)               # b's gradient
-    Gv = (prediction - Y[m]) * h                           # v's gradient
-    Gc = prediction - Y[m]                                 # c's gradient
+    Gw = (prediction - y) * np.matmul(matrix1, matrix2) # w's gradient
+    Gb = (prediction - y) * np.dot(matrix1, v)          # b's gradient
+    Gv = (prediction - y) * h                           # v's gradient
+    Gc = prediction - y                                 # c's gradient
     return Gw, Gb, Gv, Gc
 
 '''
 '''
-def update(X, Y, J, m, eta, w, b, v, c, h):
-    prediction = predict(J, v, c, h)
-    Gw, Gb, Gv, Gc = gradient(X, Y, N, w, b, v, c, h, m, prediction)
+def update(x, y, J, eta, w, b, v, c):  
+    h, prediction = predict(x, J, w, b, v, c)
+    Gw, Gb, Gv, Gc = gradient(x, y, v, h, prediction)
     w = w - eta * Gw # w (t + 1)
     b = b - eta * Gb # b (t + 1)
     v = v - eta * Gv # v (t + 1)
@@ -87,7 +90,7 @@ def update(X, Y, J, m, eta, w, b, v, c, h):
 '''
 Run shallow logistic classifier
 '''
-def run_slc(X, Y, N, J, eta, max_iteration, w, b, v, c, h, errors):
+def run_slc(X, Y, N, J, eta, max_iteration, w, b, v, c, errors):
     epsi = 10e-3
     iteration = 0
     while (errors[-1] > epsi):
@@ -96,8 +99,10 @@ def run_slc(X, Y, N, J, eta, max_iteration, w, b, v, c, h, errors):
             break
         # choose random data from dataset
         m = randint(0, N - 1)
+        x = X[m]
+        y = Y[m]
         # update w, b, v, c from (t) to (t + 1)
-        w, b, v, c = update(X, Y, J, m, eta, w, b, v, c, h)
+        w, b, v, c = update(x, y, J, eta, w, b, v, c)
         error = cost(X, Y, N, w, b, v, c)
         errors.append(error)
     return w, b, v, c, errors
@@ -120,7 +125,6 @@ w = np.ones((J, I))
 b = np.ones(J)
 v = np.ones(J)
 c = 1
-h = np.ones(J) # hidden layer's weigths
 
 eta = 0.1 # learning rate
 
@@ -128,4 +132,5 @@ eta = 0.1 # learning rate
 errors = []
 errors.append(cost(X, Y, N, w, b, v, c))
 
-run_slc(X, Y, N, J, eta, 300, w, b, v, c, h, errors)
+run_slc(X, Y, N, J, eta, 5, w, b, v, c, errors)
+print(errors)
