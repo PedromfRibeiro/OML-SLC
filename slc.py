@@ -1,6 +1,5 @@
 import numpy as np
 from random import randint
-
 from numpy.core.fromnumeric import diagonal
 
 '''
