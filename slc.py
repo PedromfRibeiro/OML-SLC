@@ -1,5 +1,4 @@
 import numpy as np
-import csv
 from random import randint
 
 from numpy.core.fromnumeric import diagonal
@@ -34,25 +33,32 @@ def sigmoid(s):
     return (1 / (1 + np.exp(-s)))
 
 '''
-Cost funtion
+Cost/Loss funtion
 '''
 def cost(X, Y, N, w, b, v, c):
     sum = 0
     for n in range(N):
-        _, prediction = predict(X[n], J, w, b, v, c)
+        prediction = predict(X[n], J, w, b, v, c)
         sum += Y[n] * np.log(prediction) + (1 - Y[n]) * np.log(1 - prediction)
     E = - sum / N
     return E
 
 '''
-Predict label
+Calculate h
 '''
-def predict(x, J, w, b, v, c):
+def get_h(x, w, b):
     # x, w, b -> b + w * x -> s
     s = b + np.dot(w, x)
     # s -> s.map(sigmoid) -> h
     func = lambda a: sigmoid(a)
     h = np.array([func(s_j) for s_j in s])
+    return h
+
+'''
+Predict label
+'''
+def predict(x, J, w, b, v, c):
+    h = get_h(x, w, b)
     # c, v, h -> c + v.T * h -> z
     sum = 0
     for j in range(J):
@@ -60,9 +66,11 @@ def predict(x, J, w, b, v, c):
     z = c + sum
     # prediction
     y = sigmoid(z)
-    return h, y
+    return y
 
-
+'''
+Calculate the gradients for w, b, v, c
+'''
 def gradient(x, y, v, h, prediction):
     func = lambda a: a * (1 - a)
     diagonal = np.array([func(h_m) for h_m in h])
@@ -77,9 +85,11 @@ def gradient(x, y, v, h, prediction):
     return Gw, Gb, Gv, Gc
 
 '''
+Update w, b, v, c
 '''
-def update(x, y, J, eta, w, b, v, c):  
-    h, prediction = predict(x, J, w, b, v, c)
+def update(x, y, J, eta, w, b, v, c): 
+    h = get_h(x, w, b) 
+    prediction = predict(x, J, w, b, v, c)
     Gw, Gb, Gv, Gc = gradient(x, y, v, h, prediction)
     w = w - eta * Gw # w (t + 1)
     b = b - eta * Gb # b (t + 1)
@@ -103,6 +113,7 @@ def run_slc(X, Y, N, J, eta, max_iteration, w, b, v, c, errors):
         y = Y[m]
         # update w, b, v, c from (t) to (t + 1)
         w, b, v, c = update(x, y, J, eta, w, b, v, c)
+        # calculate error
         error = cost(X, Y, N, w, b, v, c)
         errors.append(error)
     return w, b, v, c, errors
