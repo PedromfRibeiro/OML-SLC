@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from random import randint
 from numpy.core.fromnumeric import diagonal
 
@@ -26,9 +27,9 @@ def load_data(filename):
 Sigmoid function
 '''
 def sigmoid(s):  
-    large=30
-    if s<-large: s=-large
-    if s>large: s=large
+    #large=30
+    #if s<-large: s=-large
+    #if s>large: s=large
     return (1 / (1 + np.exp(-s)))
 
 '''
@@ -116,19 +117,59 @@ def run_slc(X, Y, N, J, eta, max_iteration, w, b, v, c, errors):
         error = cost(X, Y, N, w, b, v, c)
         errors.append(error)
     return w, b, v, c, errors
-        
+
+def plot_data(row,col,n_row,n_col,data):
+    fig=plt.figure(figsize=(row,col))
+    for n in range(1, row*col +1):
+        img=np.reshape(data[n-1][:-1],(n_row,n_col))
+        fig.add_subplot(row, col, n)
+        plt.imshow(img,interpolation='none',cmap='binary')
+    plt.show()
+'''    
+def plot_tagged_data(row,col,n_row,n_col,X,Y,ew): 
+    fig=plt.figure(figsize=(row,col))
+    for n in range(row*col):
+        img=np.reshape(X[n],(n_row,n_col))
+        fig.add_subplot(row, col, n+1)
+        #if(Y[n]>0):#exact case
+        if(predict(X[n],ew)>0.5):
+            plt.imshow(img,interpolation='none',cmap='RdPu')
+        else:
+            plt.imshow(img,interpolation='none',cmap='cool')               
+    plt.show()
+'''    
+def plot_error(err):
+    plt.plot(range(len(err)), err, marker='o')
+    plt.xlabel('Iterations')
+    plt.ylabel('Number of misclassifications')
+    plt.ylim([0,5])
+    plt.show()
+    return 
+
+def confusion(Xeval,Yeval,N, J, w, b, v, c):
+    C=np.zeros([2,2])
+    for n in range(N):
+        y = predict(Xeval[n], J, w, b, v, c)
+        if(y<0.5 and Yeval[n]<0.5): C[0,0]=C[0,0]+1
+        if(y>0.5 and Yeval[n]>0.5): C[1,1]=C[1,1]+1
+        if(y<0.5 and Yeval[n]>0.5): C[1,0]=C[1,0]+1
+        if(y>0.5 and Yeval[n]<0.5): C[0,1]=C[0,1]+1
+    return C
+       
 '''
 Main execution
 '''
 
 # load data from dataset
-N, n_row, n_col,data = load_data('./Data/XOR.txt') # and -> j = 1, xor -> j = 2
+N, n_row, n_col,data = load_data('./Data/AND.txt')
+#N, n_row, n_col,data = load_data('./Data/line1500.txt')
 N = int(N * 1.0)
 I = n_row * n_col
 X = data[:N, :-1] 
 Y = data[:N, -1]
 
-J = 3 # number of neurons in the hidden layer
+# J = 1 for AND, J = 2 for XOR, J = 3 for line600
+J = 1 # number of neurons in the hidden layer
 
 # initialize w, b, v, c
 w = np.ones((J, I))
@@ -142,5 +183,10 @@ eta = 0.1 # learning rate
 errors = []
 errors.append(cost(X, Y, N, w, b, v, c))
 
-run_slc(X, Y, N, J, eta, 5, w, b, v, c, errors)
-print(errors)
+w, b, v, c, errors = run_slc(X, Y, N, J, 2, 80, w, b, v, c, errors)
+w, b, v, c, errors = run_slc(X, Y, N, J, 0.7, 100, w, b, v, c, errors)
+plot_error(errors)
+
+print('in-samples error = %f ' % (cost(X, Y, N, w, b, v, c)))
+C = confusion(X, Y, N, J, w, b, v, c)
+print(C)
