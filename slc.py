@@ -27,11 +27,13 @@ def load_data(filename):
 Sigmoid function
 '''
 def sigmoid(s):  
-    #large=30
-    #if s<-large: s=-large
-    #if s>large: s=large
+    large=30
+    if s<-large: s=-large
+    if s>large: s=large
     return (1 / (1 + np.exp(-s)))
 
+def normalization(w):
+    return(w/np.linalg.norm(w,2))
 '''
 Cost/Loss funtion
 '''
@@ -52,6 +54,7 @@ def get_h(x, w, b):
     # s -> s.map(sigmoid) -> h
     func = lambda a: sigmoid(a)
     h = np.array([func(s_j) for s_j in s])
+    #print('a')
     return h
 
 '''
@@ -71,17 +74,20 @@ def predict(x, J, w, b, v, c):
 '''
 Calculate the gradients for w, b, v, c
 '''
-def gradient(x, y, v, h, prediction):
+def gradient(x, y, v, h, prediction, eta):
     func = lambda a: a * (1 - a)
     diagonal = np.array([func(h_m) for h_m in h])
     matrix1 = np.diag(diagonal) # J x J
     matrix2 = np.tile(x, (J, 1))    
     matrix2 = np.transpose(matrix2) * v
     matrix2 = np.transpose(matrix2) # J x I
-    Gw = (prediction - y) * np.matmul(matrix1, matrix2) # w's gradient
-    Gb = (prediction - y) * np.dot(matrix1, v)          # b's gradient
-    Gv = (prediction - y) * h                           # v's gradient
-    Gc = prediction - y                                 # c's gradient
+    delta = prediction - y
+    #delta=np.sign(delta)*min(0.1,np.abs(delta));
+    #delta = delta* eta
+    Gw = (delta) * np.matmul(matrix1, matrix2) # w's gradient
+    Gb = (delta) * np.dot(matrix1, v)          # b's gradient
+    Gv = (delta) * h                           # v's gradient
+    Gc = delta                             # c's gradient
     return Gw, Gb, Gv, Gc
 
 '''
@@ -90,32 +96,33 @@ Update w, b, v, c
 def update(x, y, J, eta, w, b, v, c): 
     h = get_h(x, w, b) 
     prediction = predict(x, J, w, b, v, c)
-    Gw, Gb, Gv, Gc = gradient(x, y, v, h, prediction)
-    w = w - eta * Gw # w (t + 1)
-    b = b - eta * Gb # b (t + 1)
-    v = v - eta * Gv # v (t + 1)
-    c = c - eta * Gc # c (t + 1)
+    Gw, Gb, Gv, Gc = gradient(x, y, v, h, prediction, eta)
+    w = w - (eta * Gw) # w (t + 1)
+    b = b - (eta * Gb) # b (t + 1)
+    v = v - (eta * Gv) # v (t + 1)
+    c = c - (eta * Gc) # c (t + 1)
     return w, b, v, c
 
 '''
 Run shallow logistic classifier
 '''
-def run_slc(X, Y, N, J, eta, max_iteration, w, b, v, c, errors):
+def run_slc(X, Y, N, J, subloop, eta, max_iteration, w, b, v, c, errors):
     epsi = 10e-3
     iteration = 0
     while (errors[-1] > epsi):
-        iteration += 1
-        if (iteration > max_iteration):
-            break
+        for j in range(subloop):
         # choose random data from dataset
-        m = randint(0, N - 1)
-        x = X[m]
-        y = Y[m]
-        # update w, b, v, c from (t) to (t + 1)
-        w, b, v, c = update(x, y, J, eta, w, b, v, c)
-        # calculate error
+            m = randint(0, N - 1)
+            x = X[m]
+            y = Y[m]
+            # update w, b, v, c from (t) to (t + 1)
+            w, b, v, c = update(x, y, J, eta, w, b, v, c)
+            # calculate error
         error = cost(X, Y, N, w, b, v, c)
         errors.append(error)
+        print('iter %d, cost=%f, eta=%e     \r' %(iteration,errors[-1],eta),end='')
+        iteration += 1
+        if (iteration > max_iteration):break
     return w, b, v, c, errors
 
 def plot_data(row,col,n_row,n_col,data):
@@ -161,32 +168,42 @@ Main execution
 '''
 
 # load data from dataset
-N, n_row, n_col,data = load_data('./Data/AND.txt')
+N, n_row, n_col,data = load_data('./Data/XOR.txt')
 #N, n_row, n_col,data = load_data('./Data/line1500.txt')
 N = int(N * 1.0)
 I = n_row * n_col
 X = data[:N, :-1] 
 Y = data[:N, -1]
-
+#eta=1.0;
+Nbiter=1200;
+subloop=200;
 # J = 1 for AND, J = 2 for XOR, J = 3 for line600
-J = 1 # number of neurons in the hidden layer
+J = 2 # number of neurons in the hidden layer
 
 # initialize w, b, v, c
 w = np.ones((J, I))
+#w=normalization(w)*0;
 b = np.ones(J)
+#b=normalization(b)*0;
 v = np.ones(J)
-c = 1
+#v=normalization(v)*0;
 
-eta = 0.1 # learning rate
+c = 1
+#c=normalization(c)*0;
+eta = 1.0  # learning rate
 
 # initialize errors' list
 errors = []
 errors.append(cost(X, Y, N, w, b, v, c))
 
-w, b, v, c, errors = run_slc(X, Y, N, J, 2, 80, w, b, v, c, errors)
-w, b, v, c, errors = run_slc(X, Y, N, J, 0.7, 100, w, b, v, c, errors)
+w, b, v, c, errors = run_slc(X, Y, N, J, subloop, eta, Nbiter, w, b, v, c, errors);print("\n");eta=0.7*eta;
+w, b, v, c, errors = run_slc(X, Y, N, J, subloop, eta, Nbiter, w, b, v, c, errors);print("\n");eta=0.5*eta;
+w, b, v, c, errors = run_slc(X, Y, N, J, subloop, eta, Nbiter, w, b, v, c, errors);print("\n");eta=0.3*eta;
+w, b, v, c, errors = run_slc(X, Y, N, J, subloop, eta, Nbiter, w, b, v, c, errors);print("\n");eta=0.4*eta;
+#w, b, v, c, errors = run_slc(X, Y, N, J, subloop, eta, Nbiter, w, b, v, c, errors)
 plot_error(errors)
 
 print('in-samples error = %f ' % (cost(X, Y, N, w, b, v, c)))
+#print(ew)
 C = confusion(X, Y, N, J, w, b, v, c)
 print(C)
