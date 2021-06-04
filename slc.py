@@ -35,11 +35,11 @@ def sigmoid(s):
 '''
 Cost/Loss funtion
 '''
-def cost(X, Y, N, w, b, v, c):
+def cost(X, Y, N, W, b, v, c):
     epsi = 1.e-12
     sum = 0
     for n in range(N):
-        prediction = predict(X[n], J, w, b, v, c)
+        prediction = predict(X[n], J, W, b, v, c)
         # verify if the value of the prediction is in [1e-12, 1-1e-12]
         if prediction < epsi: 
             prediction = epsi
@@ -52,9 +52,9 @@ def cost(X, Y, N, w, b, v, c):
 '''
 Calculate h
 '''
-def get_h(x, w, b):
+def get_h(x, W, b):
     # x, w, b -> b + w * x -> s
-    s = b + np.dot(w, x)
+    s = b + np.dot(W, x)
     # s -> s.map(sigmoid) -> h
     func = lambda a: sigmoid(a)
     h = np.array([func(s_j) for s_j in s])
@@ -64,8 +64,8 @@ def get_h(x, w, b):
 '''
 Predict label
 '''
-def predict(x, J, w, b, v, c):
-    h = get_h(x, w, b)
+def predict(x, J, W, b, v, c):
+    h = get_h(x, W, b)
     # c, v, h -> c + v.T * h -> z
     sum = 0
     for j in range(J):
@@ -104,18 +104,18 @@ def gradient(x, y, v, h, prediction):
 '''
 Update w, b, v, c
 '''
-def update(x, y, J, eta, w, b, v, c): 
+def update(x, y, J, eta, W, b, v, c): 
     # calculate the gradients
-    h = get_h(x, w, b) 
-    prediction = predict(x, J, w, b, v, c)
+    h = get_h(x, W, b) 
+    prediction = predict(x, J, W, b, v, c)
     Gw, Gb, Gv, Gc = gradient(x, y, v, h, prediction)
     # update the first layer
-    w = w - (eta * Gw) # w (t + 1)
+    W = W - (eta * Gw) # w (t + 1)
     b = b - (eta * Gb) # b (t + 1)
     # update the second layer
     v = v - (eta * Gv) # v (t + 1)
     c = c - (eta * Gc) # c (t + 1)
-    return w, b, v, c
+    return W, b, v, c
 
 '''
 Run shallow logistic classifier
@@ -184,12 +184,12 @@ Y_test = data[N_train:N, -1]
 
 # replace labels -1 for 0
 np.place(Y_train, Y_train != 1, [0])
-np.place(Y_test, Y_test!=1, [0])
+np.place(Y_test, Y_test != 1, [0])
 
 J = 10 # number of neurons in the hidden layer 
 
 # initialize w, b, v and c with random values
-w = np.random.randn(J, I)
+W = np.random.randn(J, I)
 b = np.random.randn(J)
 v = np.random.rand(J)
 c = np.random.rand(1)
@@ -201,21 +201,21 @@ subloop = 300 # only calculate the cost in each 100 iterations
 
 # initialize errors' list
 errors = []
-errors.append(cost(X_train, Y_train, N_train, w, b, v, c))
+errors.append(cost(X_train, Y_train, N_train, W, b, v, c))
 
-w, b, v, c, errors = run_slc(X_train, Y_train, N_train, J, subloop, eta, Nbiter, w, b, v, c, errors); print("\n"); eta = 0.5 * eta
-w, b, v, c, errors = run_slc(X_train, Y_train, N_train, J, subloop, eta, Nbiter, w, b, v, c, errors); print("\n"); eta = 0.5 * eta
-w, b, v, c, errors = run_slc(X_train, Y_train, N_train, J, subloop, eta, Nbiter, w, b, v, c, errors); print("\n"); eta = 0.5 * eta
-w, b, v, c, errors = run_slc(X_train, Y_train, N_train, J, subloop, eta, Nbiter, w, b, v, c, errors); print("\n")
+W, b, v, c, errors = run_slc(X_train, Y_train, N_train, J, subloop, eta, Nbiter, W, b, v, c, errors); print("\n"); eta = 0.5 * eta
+W, b, v, c, errors = run_slc(X_train, Y_train, N_train, J, subloop, eta, Nbiter, W, b, v, c, errors); print("\n"); eta = 0.5 * eta
+#W, b, v, c, errors = run_slc(X_train, Y_train, N_train, J, subloop, eta, Nbiter, W, b, v, c, errors); print("\n"); eta = 0.5 * eta
+#W, b, v, c, errors = run_slc(X_train, Y_train, N_train, J, subloop, eta, Nbiter, W, b, v, c, errors); print("\n")
 
 plot_error(errors)
 
-print('in-samples error = %f ' % (cost(X_train, Y_train, N_train, w, b, v, c)))
+print('in-samples error = %f ' % (cost(X_train, Y_train, N_train, W, b, v, c)))
 # calculate and show confusion matrix
-C = confusion(X_train, Y_train, N_train, J, w, b, v, c)
+C = confusion(X_train, Y_train, N_train, J, W, b, v, c)
 print(C)
 
-print('out-samples error=%f' % (cost(X_test, Y_test, N_test, w, b, v, c)))
+print('out-samples error=%f' % (cost(X_test, Y_test, N_test, W, b, v, c)))
 # calculate and show confusion matrix
-C =confusion(X_test, Y_test, N_test, J, w, b, v, c)
+C =confusion(X_test, Y_test, N_test, J, W, b, v, c)
 print(C)
