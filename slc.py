@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from random import randint
+from random import randint, random
 from numpy.core.fromnumeric import diagonal
 
 '''
@@ -83,7 +83,6 @@ def gradient(x, y, v, h, prediction):
     func = lambda a: a * (1 - a)
     diagonal = np.array([func(h_m) for h_m in h])
     matrix1 = np.diag(diagonal) # J x J
-    # np.tensordot
     matrix2 = np.tile(x, (J, 1))    
     matrix2 = np.transpose(matrix2) * v
     matrix2 = np.transpose(matrix2) # J x I
@@ -166,17 +165,28 @@ Main execution
 
 # load data from dataset
 #dataset = './Data/XOR.txt'
-dataset = './Data/line600.txt'
-#dataset = './Data/square_circle.txt'
-N, n_row, n_col,data = load_data(dataset)
-N = int(N * 1.0)
+#dataset = './Data/line600.txt'      # almost linearly separable (J = 2)
+dataset = './Data/rectangle600.txt' # it's harder to separate linearly (J = 10)
+#dataset = './Data/square_circle.txt' # linearly separable (J = 1)
+N, n_row, n_col, data = load_data(dataset)
 I = n_row * n_col
-X = data[:N, :-1] 
-Y = data[:N, -1]
-np.place(Y, Y != 1, [0]) # replace labels -1 for 0
 
-J = 3 # number of neurons in the hidden layer 
-      # 1 for AND, 2 for XOR, 3 for line600
+# shuffle dataset
+np.random.shuffle(data)
+
+# split data into training and testing sets
+N_train = int(N * 0.8) 
+X_train = data[:N_train, :-1]
+Y_train = data[:N_train, -1]
+N_test = N - N_train
+X_test = data[N_train:N, :-1]
+Y_test = data[N_train:N, -1]
+
+# replace labels -1 for 0
+np.place(Y_train, Y_train != 1, [0])
+np.place(Y_test, Y_test!=1, [0])
+
+J = 10 # number of neurons in the hidden layer 
 
 # initialize w, b, v and c with random values
 w = np.random.randn(J, I)
@@ -184,24 +194,28 @@ b = np.random.randn(J)
 v = np.random.rand(J)
 c = np.random.rand(1)
 
-eta = 0.5 # learning rate
+eta = 1 # learning rate
 
-Nbiter = 8000 # number of iterations
-subloop = 100 # only calculate the cost in each 100 iterations
+Nbiter = 3000 # number of iterations
+subloop = 300 # only calculate the cost in each 100 iterations
 
 # initialize errors' list
 errors = []
-errors.append(cost(X, Y, N, w, b, v, c))
+errors.append(cost(X_train, Y_train, N_train, w, b, v, c))
 
-w, b, v, c, errors = run_slc(X, Y, N, J, subloop, eta, Nbiter, w, b, v, c, errors); print("\n"); eta = 0.8 * eta
-w, b, v, c, errors = run_slc(X, Y, N, J, subloop, eta, Nbiter, w, b, v, c, errors); print("\n"); eta = 0.7 * eta
-#w, b, v, c, errors = run_slc(X, Y, N, J, subloop, eta, Nbiter, w, b, v, c, errors); print("\n"); eta = 0.6 * eta
-#w, b, v, c, errors = run_slc(X, Y, N, J, subloop, eta, Nbiter, w, b, v, c, errors); print("\n")
+w, b, v, c, errors = run_slc(X_train, Y_train, N_train, J, subloop, eta, Nbiter, w, b, v, c, errors); print("\n"); eta = 0.5 * eta
+w, b, v, c, errors = run_slc(X_train, Y_train, N_train, J, subloop, eta, Nbiter, w, b, v, c, errors); print("\n"); eta = 0.5 * eta
+w, b, v, c, errors = run_slc(X_train, Y_train, N_train, J, subloop, eta, Nbiter, w, b, v, c, errors); print("\n"); eta = 0.5 * eta
+w, b, v, c, errors = run_slc(X_train, Y_train, N_train, J, subloop, eta, Nbiter, w, b, v, c, errors); print("\n")
 
 plot_error(errors)
 
-print('in-samples error = %f ' % (cost(X, Y, N, w, b, v, c)))
-
+print('in-samples error = %f ' % (cost(X_train, Y_train, N_train, w, b, v, c)))
 # calculate and show confusion matrix
-C = confusion(X, Y, N, J, w, b, v, c)
+C = confusion(X_train, Y_train, N_train, J, w, b, v, c)
+print(C)
+
+print('out-samples error=%f' % (cost(X_test, Y_test, N_test, w, b, v, c)))
+# calculate and show confusion matrix
+C =confusion(X_test, Y_test, N_test, J, w, b, v, c)
 print(C)
